@@ -1,0 +1,382 @@
+{
+    "head": {
+        "status": "200",
+        "data": {}
+    },
+    "body": {
+        "pickupEnabled": true,
+        "content": [
+            {
+                "partNumber": "MJQ34LL/A",
+                "storeId": "R623",
+                "eligibleStores": "R623,R115,R087,R214,R074,R024,R127,R169,R185",
+                "pickupMessage": {
+                    "address": {
+                        "address": "Apple Brickell City Centre",
+                        "address3": null,
+                        "address2": "701 S. Miami Avenue",
+                        "postalCode": "33130"
+                    },
+                    "city": "Miami",
+                    "state": "FL",
+                    "storeId": "R623",
+                    "storePickupQuote": "Today at Apple Brickell City Centre",
+                    "pickupSearchQuote": "Available Today",
+                    "storeDistanceWithUnit": "0.63 mi",
+                    "storePickupLabel": "Order now. Pick up in store:",
+                    "storeSelectionEnabled": true,
+                    "distance": 0.63,
+                    "pickupEncodedUpperDateString": "20260921"
+                },
+                "storeDistanceWithUnit": "0.63 mi",
+                "partAvailableStoresCount": 9,
+                "availableMessageLink": "Available at more stores",
+                "availableAtAnyStore": true,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Order today, delivers:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "Tomorrow 10:30a.m. - 12:30p.m. \u2014 $9.00",
+                            "inHomeSetup": "false",
+                            "encodedUpperDateStringForIDL": "20260922"
+                        },
+                        {
+                            "displayName": "Oct 6 \u2013 Oct 13 \u2014 Free",
+                            "inHomeSetup": "false",
+                            "encodedUpperDateString": "20261013"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Scheduled Courier Delivery",
+                            "date": "Tomorrow 10:30a.m. - 12:30p.m.",
+                            "shippingCost": "$9.00",
+                            "additionalContent": "You can choose a date and time in checkout."
+                        },
+                        {
+                            "displayName": "Express Delivery",
+                            "date": "Oct 6 \u2013 Oct 13",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "deliveryOptionsLink": {
+                        "text": "Delivery options for 33130",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "address": {
+                        "postalCode": "33130"
+                    },
+                    "showDeliveryOptionsLink": false,
+                    "messageType": "Delivery",
+                    "basePartNumber": "MJQ34",
+                    "commitCodeId": "200",
+                    "dudeAttributes": {
+                        "source": {
+                            "cutoffFormat": "actualTime",
+                            "leadByPickup": "true",
+                            "templateId": "DUDE_APU_N",
+                            "deliveryOrderSortBy": "speed"
+                        },
+                        "resolvedLabel": "Order today.",
+                        "fastestShipMethodPriceLabel": {},
+                        "shipMethodsDisplayOrder": [
+                            "S2",
+                            "SO"
+                        ],
+                        "templateID": "DUDE_APU_N",
+                        "leadByPickup": "true",
+                        "deliveryHeader": null
+                    },
+                    "subHeader": "For iPhone\u00a018\u00a0Pro 256GB Black",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "200",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": true,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "encodedUpperDateString": "20261013",
+                "distance": 0.63,
+                "pickupEncodedUpperDateString": "20260921",
+                "encodedUpperDateStringForIDL": "20260922",
+                "idl": true
+            },
+            {
+                "partNumber": "MJW44LL/A",
+                "partAvailableStoresCount": 0,
+                "availableAtAnyStore": false,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Order today, delivers:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "Oct 13 \u2013 Oct 20 \u2014 Free",
+                            "inHomeSetup": "false",
+                            "encodedUpperDateString": "20261020"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Express Delivery",
+                            "date": "Oct 13 \u2013 Oct 20",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "deliveryOptionsLink": {
+                        "text": "Delivery options for 33130",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "address": {
+                        "postalCode": "33130"
+                    },
+                    "showDeliveryOptionsLink": false,
+                    "messageType": "Delivery",
+                    "basePartNumber": "MJW44",
+                    "commitCodeId": "300",
+                    "dudeAttributes": {
+                        "source": {
+                            "cutoffFormat": "actualTime",
+                            "leadByPickup": "false",
+                            "templateId": "DUDE_APU_N",
+                            "deliveryOrderSortBy": "speed"
+                        },
+                        "resolvedLabel": "Order today.",
+                        "fastestShipMethodPriceLabel": {},
+                        "shipMethodsDisplayOrder": [
+                            "SO"
+                        ],
+                        "templateID": "DUDE_APU_N",
+                        "leadByPickup": "false",
+                        "deliveryHeader": null
+                    },
+                    "subHeader": "For iPhone\u00a018 Pro\u00a0Max 256GB Black",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "300",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": false,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "encodedUpperDateString": "20261020",
+                "distance": 0.0,
+                "idl": false
+            },
+            {
+                "partNumber": "MJW54LL/A",
+                "partAvailableStoresCount": 0,
+                "availableAtAnyStore": false,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Order today, delivers:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "Oct 13 \u2013 Oct 20 \u2014 Free",
+                            "inHomeSetup": "false",
+                            "encodedUpperDateString": "20261020"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Express Delivery",
+                            "date": "Oct 13 \u2013 Oct 20",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "deliveryOptionsLink": {
+                        "text": "Delivery options for 33130",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "address": {
+                        "postalCode": "33130"
+                    },
+                    "showDeliveryOptionsLink": false,
+                    "messageType": "Delivery",
+                    "basePartNumber": "MJW54",
+                    "commitCodeId": "300",
+                    "dudeAttributes": {
+                        "source": {
+                            "cutoffFormat": "actualTime",
+                            "leadByPickup": "false",
+                            "templateId": "DUDE_APU_N",
+                            "deliveryOrderSortBy": "speed"
+                        },
+                        "resolvedLabel": "Order today.",
+                        "fastestShipMethodPriceLabel": {},
+                        "shipMethodsDisplayOrder": [
+                            "SO"
+                        ],
+                        "templateID": "DUDE_APU_N",
+                        "leadByPickup": "false",
+                        "deliveryHeader": null
+                    },
+                    "subHeader": "For iPhone\u00a018 Pro\u00a0Max 256GB Silver",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "300",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": false,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "encodedUpperDateString": "20261020",
+                "distance": 0.0,
+                "idl": false
+            },
+            {
+                "partNumber": "MJW64LL/A",
+                "partAvailableStoresCount": 0,
+                "availableAtAnyStore": false,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Order today, delivers:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "Oct 13 \u2013 Oct 20 \u2014 Free",
+                            "inHomeSetup": "false",
+                            "encodedUpperDateString": "20261020"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Express Delivery",
+                            "date": "Oct 13 \u2013 Oct 20",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "deliveryOptionsLink": {
+                        "text": "Delivery options for 33130",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "address": {
+                        "postalCode": "33130"
+                    },
+                    "showDeliveryOptionsLink": false,
+                    "messageType": "Delivery",
+                    "basePartNumber": "MJW64",
+                    "commitCodeId": "300",
+                    "dudeAttributes": {
+                        "source": {
+                            "cutoffFormat": "actualTime",
+                            "leadByPickup": "false",
+                            "templateId": "DUDE_APU_N",
+                            "deliveryOrderSortBy": "speed"
+                        },
+                        "resolvedLabel": "Order today.",
+                        "fastestShipMethodPriceLabel": {},
+                        "shipMethodsDisplayOrder": [
+                            "SO"
+                        ],
+                        "templateID": "DUDE_APU_N",
+                        "leadByPickup": "false",
+                        "deliveryHeader": null
+                    },
+                    "subHeader": "For iPhone\u00a018 Pro\u00a0Max 256GB Burgundy",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "300",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": false,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "encodedUpperDateString": "20261020",
+                "distance": 0.0,
+                "idl": false
+            },
+            {
+                "partNumber": "MJW74LL/A",
+                "partAvailableStoresCount": 0,
+                "availableAtAnyStore": false,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Order today, delivers:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "Oct 13 \u2013 Oct 20 \u2014 Free",
+                            "inHomeSetup": "false",
+                            "encodedUpperDateString": "20261020"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Express Delivery",
+                            "date": "Oct 13 \u2013 Oct 20",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "deliveryOptionsLink": {
+                        "text": "Delivery options for 33130",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "address": {
+                        "postalCode": "33130"
+                    },
+                    "showDeliveryOptionsLink": false,
+                    "messageType": "Delivery",
+                    "basePartNumber": "MJW74",
+                    "commitCodeId": "300",
+                    "dudeAttributes": {
+                        "source": {
+                            "cutoffFormat": "actualTime",
+                            "leadByPickup": "false",
+                            "templateId": "DUDE_APU_N",
+                            "deliveryOrderSortBy": "speed"
+                        },
+                        "resolvedLabel": "Order today.",
+                        "fastestShipMethodPriceLabel": {},
+                        "shipMethodsDisplayOrder": [
+                            "SO"
+                        ],
+                        "templateID": "DUDE_APU_N",
+                        "leadByPickup": "false",
+                        "deliveryHeader": null
+                    },
+                    "subHeader": "For iPhone\u00a018 Pro\u00a0Max 256GB Glacier",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "300",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": false,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "encodedUpperDateString": "20261020",
+                "distance": 0.0,
+                "idl": false
+            }
+        ]
+    }
+}

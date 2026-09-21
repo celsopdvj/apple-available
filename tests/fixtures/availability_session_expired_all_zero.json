@@ -1,0 +1,105 @@
+{
+    "head": {
+        "status": "200",
+        "data": {}
+    },
+    "body": {
+        "pickupEnabled": true,
+        "content": [
+            {
+                "partNumber": "MJW44LL/A",
+                "partAvailableStoresCount": 0,
+                "availableAtAnyStore": false,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Ships:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "3\u20134 weeks",
+                            "inHomeSetup": "false"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Standard Delivery",
+                            "date": "Within 5 days after shipping",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "promoMessage": "Free Shipping",
+                    "deliveryOptionsLink": {
+                        "text": "Get delivery dates",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "showDeliveryOptionsLink": true,
+                    "messageType": "Ship",
+                    "basePartNumber": "MJW44",
+                    "commitCodeId": "300",
+                    "subHeader": "For iPhone\u00a018 Pro\u00a0Max 256GB Black",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "300",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": false,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "distance": 0.0,
+                "idl": false
+            },
+            {
+                "partNumber": "MJQ34LL/A",
+                "partAvailableStoresCount": 0,
+                "availableAtAnyStore": false,
+                "deliveryMessage": {
+                    "orderByDeliveryBy": "Ships:",
+                    "deliveryOptionMessages": [
+                        {
+                            "displayName": "2\u20133 weeks",
+                            "inHomeSetup": "false"
+                        }
+                    ],
+                    "deliveryOptions": [
+                        {
+                            "displayName": "Standard Delivery",
+                            "date": "Within 5 days after shipping",
+                            "shippingCost": "Free",
+                            "additionalContent": null
+                        }
+                    ],
+                    "promoMessage": "Free Shipping",
+                    "deliveryOptionsLink": {
+                        "text": "Get delivery dates",
+                        "dataVar": {},
+                        "newTab": false,
+                        "isLinkAsButton": false,
+                        "deeplink": []
+                    },
+                    "showDeliveryOptionsLink": true,
+                    "messageType": "Ship",
+                    "basePartNumber": "MJQ34",
+                    "commitCodeId": "200",
+                    "subHeader": "For iPhone\u00a018\u00a0Pro 256GB Black",
+                    "buyability": {
+                        "reason": "OK",
+                        "commitCode": "200",
+                        "isBuyable": true
+                    },
+                    "defaultLocationEnabled": false,
+                    "idl": false,
+                    "inHomeSetup": false,
+                    "isElectronic": false,
+                    "isBuyable": true
+                },
+                "distance": 0.0,
+                "idl": false
+            }
+        ]
+    }
+}
