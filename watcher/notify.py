@@ -37,23 +37,50 @@ def format_recovered() -> str:
     return "🟡 Availability watcher has recovered and is checking normally again."
 
 
+def migrated_chat_id(response) -> str | None:
+    """Return the new chat id if Telegram says this chat was migrated."""
+    if response.status_code != 400:
+        return None
+    try:
+        params = (response.json() or {}).get("parameters") or {}
+    except ValueError:
+        return None
+    new_id = params.get("migrate_to_chat_id")
+    return str(new_id) if new_id else None
+
+
 class Telegram:
     def __init__(self, token: str, chat_id: str):
         self._base = f"https://api.telegram.org/bot{token}"
         self._chat_id = chat_id
 
+    def _post(self, text: str, chat_id: str):
+        return requests.post(
+            f"{self._base}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": False,
+            },
+            timeout=20,
+        )
+
     def send(self, text: str) -> bool:
         try:
-            r = requests.post(
-                f"{self._base}/sendMessage",
-                json={
-                    "chat_id": self._chat_id,
-                    "text": text,
-                    "parse_mode": "Markdown",
-                    "disable_web_page_preview": False,
-                },
-                timeout=20,
-            )
+            r = self._post(text, self._chat_id)
+            # A group silently becomes a supergroup when upgraded, which changes
+            # its ID. Telegram hands back the new one; follow it rather than
+            # dropping the alert, and say so loudly so config can be updated.
+            new_id = migrated_chat_id(r)
+            if new_id:
+                log.error(
+                    "telegram chat %s was upgraded to a supergroup; resending to %s. "
+                    "Update chat_id in config.toml to %s.",
+                    self._chat_id, new_id, new_id,
+                )
+                self._chat_id = new_id
+                r = self._post(text, new_id)
         except requests.RequestException as exc:
             log.error("telegram send failed: %s", exc)
             return False
@@ -72,6 +99,12 @@ class Telegram:
             f"{self._base}/getChat", params={"chat_id": self._chat_id}, timeout=20
         )
         if not chat.ok:
+            new_id = migrated_chat_id(chat)
+            if new_id:
+                raise RuntimeError(
+                    f"chat {self._chat_id} was upgraded to a supergroup. "
+                    f"Set chat_id = \"{new_id}\" in config.toml."
+                )
             raise RuntimeError(
                 f"bot @{name} cannot see chat {self._chat_id}: {chat.text[:200]}. "
                 "Add the bot to the group; if privacy mode is on, make it an admin."

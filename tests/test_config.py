@@ -16,7 +16,7 @@ def test_loads_all_fields(tmp_path):
     assert cfg.capacity == "256GB"
     assert cfg.colors == ["*"]
     assert cfg.canary_part == "MJQ34LL/A"
-    assert cfg.chat_id == "-5597962862"
+    assert cfg.chat_id == "-1004333816460"
     assert cfg.bot_token == "tok"
     assert cfg.repeat_minutes == 30
     assert cfg.failure_alert_threshold == 5

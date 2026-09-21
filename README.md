@@ -16,7 +16,7 @@ available for in-store pickup near **ZIP 33130**.
    ```
 
 3. **Add the bot to your Telegram group.** The configured chat
-   (`-5597962862`) is a group, so the bot must be a member. If the bot has
+   (`-1004333816460`) is a supergroup, so the bot must be a member. If the bot has
    BotFather privacy mode enabled, promote it to admin or it cannot post.
 
 4. Verify:
@@ -76,6 +76,15 @@ fabricate an alert nor erase a real one.
 
 You get a message when a watched part goes unavailable → available, and a
 reminder every 30 minutes while it stays available.
+
+## Telegram chat IDs
+
+A Telegram group silently becomes a *supergroup* when it is upgraded, and
+its chat ID changes. `getChat` keeps accepting the old ID while
+`sendMessage` rejects it, so a stale ID looks fine until an alert is
+actually sent. `send()` therefore follows Telegram's `migrate_to_chat_id`
+and resends rather than dropping the message, logging the new ID so
+`config.toml` can be corrected.
 
 ## Limitation
 
