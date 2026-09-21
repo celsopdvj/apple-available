@@ -25,49 +25,82 @@ minutes, not hours.
 
 These were verified against apple.com on 2026-09-21 and drive the design.
 
-### The availability endpoint
+### The store-availability endpoint (primary)
 
 ```
-GET https://www.apple.com/shop/sba/availability-message
-      ?location=<zip>&parts.0=<part>&parts.1=<part>...
+GET https://www.apple.com/shop/retail/pickup-message
+      ?pl=true&mts.0=regular&location=<zip>
+      &parts.0=<part>&parts.1=<part>...
 ```
 
-Returns JSON. Per part it carries `partAvailableStoresCount`,
-`availableAtAnyStore`, `eligibleStores` (comma-separated store IDs), a
-`pickupMessage` with store name/street address, and a `deliveryMessage`
-whose `subHeader` names the configuration in plain text
-(e.g. `For iPhone 18 Pro Max 256GB Black`).
+Returns JSON with a `stores` array. Each store carries `storeName`,
+`address`, `city`, `state`, `storeDistanceWithUnit`, `phoneNumber`, and a
+`partsAvailability` map keyed by part number whose entries give
+`pickupDisplay` (`available` / `unavailable`) and `pickupSearchQuote`
+(e.g. `Available Today`).
+
+Verified properties:
+
+- **Batches parts.** All four watched parts plus the canary return in a
+  single request, each store reporting per-part availability.
+- **Needs no cookie or session.** A cold, cookieless request returns
+  correct results; the `location` query parameter is honoured directly.
+- **Gives per-store detail.** Store names, distances and pickup quotes come
+  back in the same response, so the notification needs no second call.
+
+For ZIP 33130 it returns 12 stores. At capture time the canary was
+available at 9 of them and unavailable at 3, matching the count reported by
+the other endpoint.
 
 No browser automation is required. The wizard steps in the user's video
 (trade-in, carrier, AppleCare) do not change the part number; unlocked with
 no AppleCare is what these part numbers already mean.
 
-At least 8 parts per request work. The whole watch list plus canary is 5,
-so a poll costs **one** HTTP request.
+### Rejected alternatives
 
-### The session requirement, and the silent-failure trap
+`/shop/sba/availability-message` was the first endpoint found. It works but
+is strictly worse here: it returns only the single nearest store, and it
+requires a location cookie obtained by POSTing to
+`/shop/address/location/update`. Without that cookie it returns `200 OK`
+with zero stores for **every** part, including parts stocked at a dozen
+stores — a broken session is indistinguishable from "no stock". That trap
+cost real time during investigation (it reported a year-old iPhone 17 as
+unavailable nationwide). Choosing `pickup-message` removes the cookie
+dependency and therefore removes the trap entirely.
 
-The endpoint requires a location cookie. Without it, it returns
-`200 OK` with `partAvailableStoresCount: 0` and
-`availableAtAnyStore: false` for **every** part — including parts that are
-in stock at a dozen stores. A broken session is therefore
-indistinguishable from "no stock" by inspection of the response alone.
+`/shop/sba/pickup-detail` returns an empty body under every parameter
+combination tried, including with an in-stock part and a fully bootstrapped
+session. Unused.
 
-This is not hypothetical: it produced a full page of false zeros during
-investigation, including for a year-old iPhone 17, before being caught.
+`/shop/fulfillment-messages` returns HTTP 541 (bot-block). Unused.
 
-The cookie is set by a **POST**:
+### Product discovery comes from the buy page, not an API
 
+The buy page embeds a JSON array of every purchasable configuration:
+
+```json
+{"sku":"MJW44","partNumber":"MJW44LL/A","price":{"fullPrice":1299.00},
+ "category":"iphone","name":"iPhone\u00a018 Pro\u00a0Max 256GB Black"}
 ```
-POST https://www.apple.com/shop/address/location/update
-Content-Type: application/x-www-form-urlencoded
 
-location=<zip>&postalCode=<zip>
-```
+32 entries, one per iPhone configuration, carrying the part number, the
+full human-readable config name and the price. AppleCare SKUs are not in
+this array, so they need no filtering.
 
-A successful response reports `"dudeCookieSet": true` and
-`"userEnteredLocation": true`, and sets an `as_loc` cookie. The GET form of
-the same URL returns 200 but does **not** set the cookie.
+### Non-breaking spaces in product names
+
+**The `name` values use U+00A0 (non-breaking space), not ordinary spaces:**
+`iPhone\u00a018 Pro\u00a0Max 256GB Black`.
+
+A naive `"iPhone 18 Pro Max" in name` test therefore matches nothing and
+yields an empty watch list — the exact "silently watching nothing" failure
+this design is built to avoid. It was observed during investigation: the
+first filter written returned zero parts against a page that plainly
+contained all four.
+
+All configuration matching MUST normalize with `unicodedata.normalize`
+(NFKC) and collapse U+00A0 to a space before comparing. This applies to
+any Apple-supplied label, not just this array.
 
 ### Part numbers (as of 2026-09-21)
 
@@ -89,7 +122,8 @@ rediscovers them at runtime (see Part discovery).
 ## Architecture
 
 A one-shot script invoked by cron. Each run is a complete, independent
-check: bootstrap, fetch, compare, notify, persist, exit. A failed run is a
+check: fetch, compare, notify, persist, exit. There is no session or
+cookie state to establish, because the primary endpoint needs none. A failed run is a
 skipped cycle and nothing more. There is no daemon, no long-lived process,
 and no restart policy to maintain.
 
@@ -106,11 +140,14 @@ it as `python -m watcher`.
 
 ### Module boundaries
 
-**`watcher/apple.py`** — the only module that knows apple.com exists. Owns cookie
-bootstrap, part discovery, the availability request, and response parsing.
-Exposes `fetch_availability(session, zip, parts) -> list[PartAvailability]`
-and raises `SessionExpired` / `TransientError`. Returns dataclasses, never
-raw JSON. If Apple changes anything, this is the file that changes.
+**`watcher/apple.py`** — the only module that knows apple.com exists. Owns
+product discovery (buy-page parsing), the pickup-message request, label
+normalization and response parsing. Exposes
+`discover_products(html) -> list[Product]` and
+`fetch_pickup(zip, parts) -> list[PartAvailability]`, raising
+`TransientError` on network/bot-block failures and `ImplausibleResponse`
+when the canary check fails. Returns dataclasses, never raw JSON. If Apple
+changes anything, this is the file that changes.
 
 **`watcher/state.py`** — reads and writes `state.json`; given previous and current
 readings, returns the list of parts that transitioned to available and
@@ -126,19 +163,35 @@ Apple; takes already-computed events.
 
 ```python
 @dataclass(frozen=True)
+class Product:
+    part: str          # "MJW44LL/A"
+    name: str          # "iPhone 18 Pro Max 256GB Black" (NBSP-normalized)
+    price: float       # 1299.00
+
+@dataclass(frozen=True)
+class Store:
+    store_id: str      # "R623"
+    name: str          # "Brickell City Centre"
+    street: str        # "701 S. Miami Avenue"
+    city: str          # "Miami"
+    state: str         # "FL"
+    distance: str      # "0.63 mi"
+    quote: str         # "Available Today"
+
+@dataclass(frozen=True)
 class PartAvailability:
-    part: str            # "MJW44LL/A"
-    config: str          # "iPhone 18 Pro Max 256GB Black"
-    model: str           # "iPhone 18 Pro Max"
-    capacity: str        # "256GB"
-    color: str           # "Black"
-    store_count: int
-    available: bool
-    stores: list[Store]  # name, street, city, state, pickup quote
+    part: str
+    name: str            # from the matching Product, NBSP-normalized
+    available: bool      # any store with pickupDisplay == "available"
+    stores: list[Store]  # only stores where it IS available
+
+    @property
+    def store_count(self) -> int:
+        return len(self.stores)
 ```
 
-`config`, `model`, `capacity` and `color` are parsed from the API's own
-`subHeader`, so labels never drift from what Apple reports.
+Names come from the buy page's own product array, normalized for
+non-breaking spaces, so labels never drift from what Apple publishes.
 
 ## Part discovery
 
@@ -156,11 +209,13 @@ colors = ["*"]          # or ["Black", "Silver"]
 ```
 
 Each run, if the cached part list is older than `discovery_ttl_hours`
-(default 24) or empty, the script fetches the buy page, extracts candidate
-part numbers by regex (`[A-Z0-9]{5,6}LL/A`), queries them in batches of 6,
-and keeps those whose `subHeader` matches the watch config. AppleCare SKUs
-(which appear in the same page and whose `subHeader` contains `AppleCare`)
-are excluded. The result is cached in `state.json`.
+(default 24) or empty, the script fetches the buy page and parses its
+embedded product array (see Key findings). Each entry's `name` is
+NBSP-normalized and matched against the watch config: `model` as a prefix,
+`capacity` as a substring, and `colors` as the trailing word unless `["*"]`.
+The result — part number, name and price — is cached in `state.json`.
+
+AppleCare SKUs are absent from this array and need no filtering.
 
 If discovery finds **zero** matching parts, that is an error condition, not
 an empty result: the script alerts once and leaves prior state untouched.
@@ -169,8 +224,15 @@ prevent.
 
 ## The canary
 
-Every availability request includes one control part that is expected to be
-in stock. Config:
+Choosing `pickup-message` eliminated the cookie-session trap, but not the
+general class of failure it belongs to: an endpoint that answers `200 OK`
+with a well-formed, entirely negative response. A `location` value silently
+stopped being honoured, a regional block, or a change in how availability is
+reported would all read as "no stock everywhere" and the watcher would wait
+forever in cheerful silence.
+
+So every request still includes one control part expected to be in stock.
+It rides along in the same batched request and costs nothing. Config:
 
 ```toml
 [canary]
@@ -179,16 +241,17 @@ part = "MJQ34LL/A"      # iPhone 18 Pro 256GB Black
 
 Decision rule, applied before any comparison:
 
-- Canary `store_count > 0` → session healthy, trust the readings.
-- Canary `store_count == 0` → **do not trust the zeros.** Re-bootstrap the
-  session and retry once. If the canary is still zero, raise
-  `SessionExpired`, leave state untouched, and count it as a failed run.
+- Canary available at >0 stores → response is meaningful, trust the readings.
+- Canary available at 0 stores → **do not trust the zeros.** Retry once
+  after a short backoff. If the canary is still zero, raise
+  `ImplausibleResponse`, leave state untouched, and count it as a failed
+  run. Repeated failures trip the health alert.
 
-This converts the silent-failure trap into a self-healing one. The two
-captured fixtures pin both sides of the discrimination:
-`availability_watched_unavailable_canary_ok.json` (canary 9, watched 0 —
-genuine scarcity) and `availability_session_expired_all_zero.json`
-(everything 0 — broken session).
+An all-negative response is thus never silently accepted as truth. The
+captured fixtures pin both sides: `pickup_message_watched_unavailable_canary_ok.json`
+(canary available at 9 of 12 stores, watched parts at 0 — genuine scarcity)
+and `availability_session_expired_all_zero.json` (everything 0 — a response
+that must not be believed).
 
 The canary is itself a supply risk: if the iPhone 18 Pro sells out
 everywhere, the canary reads zero and the watcher alerts as broken. That
@@ -234,7 +297,8 @@ https://www.apple.com/shop/buy-iphone/iphone-18-pro
 |---|---|
 | Connection error, timeout, 5xx | Retry 3× with exponential backoff (2s, 4s, 8s) |
 | HTTP 541 (Apple bot-block) | Treat as transient; backoff and retry |
-| Canary reads zero | Re-bootstrap once, then `SessionExpired` |
+| Canary available at zero stores | Retry once, then `ImplausibleResponse` |
+| Product name fails NBSP normalization | Normalize before compare; never match raw |
 | Missing/renamed JSON fields | Log at WARNING, treat part as unknown, never as a change |
 | Discovery matches zero parts | Alert once; preserve prior state |
 | Any failed run | **State is never written.** |
@@ -256,6 +320,9 @@ colors = ["*"]
 [location]
 zip = "33130"
 
+[telegram]
+chat_id = "-5597962862"     # group chat; bot must be a member
+
 [canary]
 part = "MJQ34LL/A"
 
@@ -266,8 +333,16 @@ discovery_ttl_hours = 24
 failure_alert_threshold = 5
 ```
 
-`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` come from a `.env` file
-(mode 600, gitignored). Secrets never go in `config.toml`.
+`TELEGRAM_BOT_TOKEN` comes from a `.env` file (mode 600, gitignored);
+`TELEGRAM_CHAT_ID` may be set there too and overrides `config.toml`. The
+token is a secret and never goes in `config.toml` or git. The chat ID is
+not a secret and is kept in config for legibility.
+
+The configured chat is a **group** (negative ID), so the bot must be added
+to that group. If the bot has BotFather privacy mode enabled it must also
+be promoted to admin, or it cannot post. Note that a group silently
+becomes a supergroup when upgraded, which changes its ID; a send failing
+with `chat not found` after previously working is the signature.
 
 ## Runtime and deployment
 
@@ -294,11 +369,14 @@ to a VPS or GitHub Actions later is a deployment change, not a rewrite.
 Unit tests run offline against the captured fixtures in `tests/fixtures/`:
 
 - Canary healthy + watched at zero → no alert (genuine scarcity).
-- Canary zero → `SessionExpired`, state untouched, no alert.
+- Canary at zero stores → `ImplausibleResponse`, state untouched, no alert.
 - Watched part 0 → 4 stores → exactly one alert, correct store list.
 - Watched part stays available → repeat only after `repeat_minutes`.
 - Watched part available → unavailable → no message, timer cleared.
-- `subHeader` parsing across all 37 real strings, AppleCare SKUs excluded.
+- Discovery against the real buy-page product array: all 32 entries parse,
+  and the NBSP-normalized filter yields exactly the four 256GB Pro Max
+  parts. A regression test asserts that matching the *raw* (un-normalized)
+  name yields zero parts, pinning the bug that was actually hit.
 - Malformed/truncated JSON → treated as failure, state untouched.
 - Consecutive failures → exactly one health alert, then silence.
 
