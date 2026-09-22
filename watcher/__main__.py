@@ -100,11 +100,13 @@ def update_heartbeat(tg, st, results, canary, cfg, alerted: bool, dry_run: bool)
         hb_id = None
 
     if hb_id and tg.edit(hb_id, text):
+        log.info("heartbeat %s updated", hb_id)
         return
 
     if hb_id:
         log.info("heartbeat message %s is gone; sending a new one", hb_id)
     new_id = tg.send_id(text)
+    log.info("heartbeat posted as %s", new_id)
     st["heartbeat_message_id"] = new_id or None
 
 
@@ -194,6 +196,7 @@ def main() -> int:
         st = state_mod.State.load(STATE_PATH)
         print(f"consecutive failures: {st.get('consecutive_failures', 0)}")
         print(f"products refreshed:   {st.get('products_fetched_at') or 'never'}")
+        print(f"heartbeat message:    {st.get('heartbeat_message_id') or 'none'}")
         for part, d in sorted(st.get("parts", {}).items()):
             mark = "AVAILABLE" if d.get("available") else "-"
             print(f"  {part:<12} {mark:<10} {d.get('store_count', 0):>3} stores  "
