@@ -6,21 +6,30 @@ available for in-store pickup near **ZIP 33130**.
 
 ## Where it runs
 
-The watcher runs as a scheduled GitHub Action (`.github/workflows/watch.yml`)
-every 5 minutes, so coverage does not depend on a laptop being awake. State
-is carried between runs with `actions/cache`; if that cache is ever lost the
-worst case is one duplicate alert and a fresh heartbeat message, never
-silence.
+Every check runs inside GitHub Actions (`.github/workflows/watch.yml`).
+There are two triggers:
 
-It can equally run from cron on any machine -- see `scripts/install-cron.sh`.
-**Do not run both at once:** each keeps its own `state.json`, so the two
-copies would double-notify and fight over the heartbeat message. The local
-cron entry was removed when the Action took over; re-adding it means
-removing the schedule from the workflow.
+| Trigger | Interval | Role |
+|---|---|---|
+| `scripts/dispatch.sh` from local cron | 3 min | Primary, while the machine is awake |
+| The workflow's own `schedule` | 15 min | Fallback, for when it is not |
 
-Scheduled workflows are best-effort: GitHub runs them late under load, and
-disables them entirely after 60 days with no repository activity. A frozen
-timestamp on the heartbeat is how you would notice.
+The local cron entry **triggers** the Action; it does not run the check
+itself. That is the whole point: because every run happens inside Actions,
+they all share one `actions/cache` state, so there is a single heartbeat
+message and no duplicate alerts. Running the checker locally *and* in the
+cloud would give each copy its own `state.json` and double everything.
+
+The workflow's `concurrency` group serialises runs, so a dispatch landing on
+top of a scheduled run queues rather than racing on that state.
+
+State lives in `actions/cache`. If it is ever lost, the worst case is one
+duplicate alert and a fresh heartbeat message -- noisy, never silent.
+
+`*/15` is deliberate: `*/5` is the most contended cron expression on GitHub
+and is routinely delayed or dropped. Scheduled workflows are best-effort in
+general, and GitHub disables them after 60 days of repository inactivity. A
+frozen "Last checked" timestamp on the heartbeat is how you would notice.
 
 ## Setup
 

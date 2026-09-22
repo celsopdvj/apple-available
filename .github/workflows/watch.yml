@@ -5,9 +5,10 @@ name: watch
 
 on:
   schedule:
-    # Every 5 minutes -- GitHub's minimum for scheduled workflows. Actual
-    # firing is best-effort and often runs late under load.
-    - cron: '*/5 * * * *'
+    # Fallback only, for when no machine is awake to dispatch. */15 is far
+    # less contended than */5, which GitHub routinely delays or drops.
+    # The primary trigger is scripts/dispatch.sh from local cron every 3 min.
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 # Never let two checks run at once: they would race on the cached state and
