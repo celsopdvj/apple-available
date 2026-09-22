@@ -48,11 +48,21 @@ Logs land in `logs/watcher.log`.
 Edit `config.toml`:
 
 ```toml
-[watch]
+[[watch]]
 model = "iPhone 18 Pro Max"   # exact model name as Apple writes it
 capacity = "256GB"
 colors = ["*"]                 # or ["Black", "Silver"]
+
+[[watch]]
+model = "iPhone 18 Pro Max"
+capacity = "2TB"
+colors = ["*"]
 ```
+
+Repeat the `[[watch]]` block for as many model/capacity combinations as you
+want; they are all fetched in a single request. Editing this file takes
+effect on the very next run — the part cache is keyed to the watch
+configuration, so it is discarded whenever you change a target.
 
 `model` and `capacity` are matched as a single prefix against Apple's own
 product names, so `"iPhone 18 Pro"` will **not** match `"iPhone 18 Pro Max"`.

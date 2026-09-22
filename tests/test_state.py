@@ -78,3 +78,7 @@ def test_load_corrupt_file_returns_empty(tmp_path):
     p = tmp_path / "state.json"
     p.write_text("{not json")
     assert State.load(p)["parts"] == {}
+
+
+def test_empty_state_has_watch_fingerprint_slot():
+    assert "watch_fingerprint" in State.empty()

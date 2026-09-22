@@ -1,6 +1,11 @@
-[watch]
+[[watch]]
 model = "iPhone 18 Pro Max"
 capacity = "256GB"
+colors = ["*"]
+
+[[watch]]
+model = "iPhone 18 Pro Max"
+capacity = "2TB"
 colors = ["*"]
 
 [location]

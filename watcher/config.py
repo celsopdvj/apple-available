@@ -10,11 +10,20 @@ class ConfigError(Exception):
 
 
 @dataclass(frozen=True)
-class Config:
-    zip: str
+class WatchTarget:
     model: str
     capacity: str
     colors: list[str]
+
+    def __str__(self) -> str:
+        colors = "all colors" if "*" in self.colors else ", ".join(self.colors)
+        return f"{self.model} {self.capacity} ({colors})"
+
+
+@dataclass(frozen=True)
+class Config:
+    zip: str
+    watch: list[WatchTarget]
     canary_part: str
     chat_id: str
     bot_token: str
@@ -39,13 +48,25 @@ def load_config(path: Path, env: Mapping[str, str]) -> Config:
             "get one from @BotFather."
         )
 
+    watch_raw = raw.get("watch")
+    if isinstance(watch_raw, dict):      # legacy single-target form
+        watch_raw = [watch_raw]
+    if not watch_raw:
+        raise ConfigError("no [[watch]] targets configured; watching nothing is a bug")
+    targets = [
+        WatchTarget(
+            model=w["model"],
+            capacity=w["capacity"],
+            colors=list(w.get("colors", ["*"])),
+        )
+        for w in watch_raw
+    ]
+
     polling = raw.get("polling", {})
     chat_id = env.get("TELEGRAM_CHAT_ID") or raw["telegram"]["chat_id"]
     return Config(
         zip=str(raw["location"]["zip"]),
-        model=raw["watch"]["model"],
-        capacity=raw["watch"]["capacity"],
-        colors=list(raw["watch"]["colors"]),
+        watch=targets,
         canary_part=raw["canary"]["part"],
         chat_id=str(chat_id),
         bot_token=token,

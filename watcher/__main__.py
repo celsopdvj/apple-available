@@ -28,20 +28,40 @@ def read_dotenv(path: Path) -> dict[str, str]:
     return env
 
 
+def watch_fingerprint(cfg) -> str:
+    """Identifies the watch configuration, so that editing config.toml takes
+    effect on the next run instead of waiting out the discovery TTL."""
+    parts = [f"{w.model}|{w.capacity}|{','.join(sorted(w.colors))}" for w in cfg.watch]
+    return ";".join(sorted(parts)) + f"#canary={cfg.canary_part}"
+
+
 def refresh_products(cfg, st, session):
-    """Re-discover parts if the cache is stale, else reuse it."""
+    """Re-discover parts if the cache is stale or the watch config changed,
+    else reuse it."""
+    fingerprint = watch_fingerprint(cfg)
     fetched = st.get("products_fetched_at")
     fresh = False
     if fetched:
         age = datetime.now(timezone.utc) - datetime.fromisoformat(fetched)
         fresh = age < timedelta(hours=cfg.discovery_ttl_hours)
+    if st.get("watch_fingerprint") != fingerprint:
+        log.info("watch configuration changed; rediscovering parts")
+        fresh = False
     if fresh and st.get("products"):
         return {p: apple.Product(p, d["name"], d["price"])
                 for p, d in st["products"].items()}
 
     log.info("refreshing product list from the buy page")
     products = apple.discover_products(apple.fetch_buy_page(session))
-    watched = apple.select_watched(products, cfg.model, cfg.capacity, cfg.colors)
+    watched: list[apple.Product] = []
+    for target in cfg.watch:
+        found = apple.select_watched(
+            products, target.model, target.capacity, target.colors
+        )
+        log.info("target %s -> %d parts", target, len(found))
+        watched.extend(found)
+    # Dedupe: overlapping targets must not queue a part twice.
+    watched = list({p.part: p for p in watched}.values())
     canary = next((p for p in products if p.part == cfg.canary_part), None)
     if canary is None:
         raise apple.DiscoveryError(
@@ -50,7 +70,14 @@ def refresh_products(cfg, st, session):
     chosen = {p.part: p for p in [*watched, canary]}
     st["products"] = {p.part: {"name": p.name, "price": p.price} for p in chosen.values()}
     st["products_fetched_at"] = datetime.now(timezone.utc).isoformat()
-    log.info("watching %d parts: %s", len(watched), ", ".join(p.name for p in watched))
+    st["watch_fingerprint"] = fingerprint
+
+    # Parts that left the watch list must not linger in state as stale entries.
+    for gone in set(st.get("parts", {})) - set(chosen):
+        log.info("no longer watching %s; dropping from state", gone)
+        st["parts"].pop(gone, None)
+    log.info("watching %d parts: %s", len(watched),
+             ", ".join(sorted(p.name for p in watched)))
     return chosen
 
 
@@ -101,10 +128,12 @@ def run_once(cfg, dry_run: bool) -> int:
 
     if not decision.newly_available and not decision.repeats:
         canary = results[cfg.canary_part]
+        summary = ", ".join(
+            f"{r.name.replace('iPhone 18 Pro Max ', '')}={r.store_count}"
+            for r in sorted(watched.values(), key=lambda x: x.name)
+        )
         log.info("no change (canary %s at %d stores); %s",
-                 canary.part, canary.store_count,
-                 ", ".join(f"{r.name.split('256GB ')[-1]}={r.store_count}"
-                           for r in watched.values()))
+                 canary.part, canary.store_count, summary)
 
     if not dry_run:
         st.save(STATE_PATH)

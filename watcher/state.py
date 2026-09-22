@@ -18,6 +18,7 @@ class State(dict):
             "parts": {},
             "products": {},
             "products_fetched_at": None,
+            "watch_fingerprint": None,
             "consecutive_failures": 0,
             "alerted_unhealthy": False,
         })
