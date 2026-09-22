@@ -4,6 +4,18 @@ Polls Apple's store-pickup endpoint every 3 minutes and sends a Telegram
 message the moment an **iPhone 18 Pro Max 256GB** (any color) becomes
 available for in-store pickup near **ZIP 33130**.
 
+## Where it runs
+
+The watcher runs as a scheduled GitHub Action (`.github/workflows/watch.yml`)
+every 5 minutes, so coverage does not depend on a laptop being awake. State
+is carried between runs with `actions/cache`; if that cache is ever lost the
+worst case is one duplicate alert and a fresh heartbeat message, never
+silence.
+
+It can equally run from cron on any machine -- see `scripts/install-cron.sh`.
+**Do not run both at once:** each keeps its own `state.json`, so the two
+copies would double-notify and fight over the heartbeat message.
+
 ## Setup
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.
@@ -12,8 +24,13 @@ available for in-store pickup near **ZIP 33130**.
    ```bash
    cp .env.example .env
    chmod 600 .env
-   # edit .env and set TELEGRAM_BOT_TOKEN=<your token>
+   # edit .env: TELEGRAM_BOT_TOKEN=<your token>
+   #            TELEGRAM_CHAT_ID=<your group id>
    ```
+
+   For the GitHub Action, set the same two values as repository secrets
+   (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). The chat id is kept out of
+   `config.toml` because this repository is public.
 
 3. **Add the bot to your Telegram group.** The configured chat
    (`-1004333816460`) is a supergroup, so the bot must be a member. If the bot has

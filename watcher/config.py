@@ -63,7 +63,15 @@ def load_config(path: Path, env: Mapping[str, str]) -> Config:
     ]
 
     polling = raw.get("polling", {})
-    chat_id = env.get("TELEGRAM_CHAT_ID") or raw["telegram"]["chat_id"]
+    # The chat id is not a secret, but it is identifying, so it lives in the
+    # environment rather than in a public config file. config.toml may still
+    # supply it for local convenience.
+    chat_id = env.get("TELEGRAM_CHAT_ID") or raw.get("telegram", {}).get("chat_id")
+    if not chat_id:
+        raise ConfigError(
+            "TELEGRAM_CHAT_ID is not set. Put it in .env, or set "
+            "[telegram] chat_id in config.toml."
+        )
     return Config(
         zip=str(raw["location"]["zip"]),
         watch=targets,

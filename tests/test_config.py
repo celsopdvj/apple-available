@@ -10,7 +10,8 @@ def _cfg(tmp_path):
 
 
 def test_loads_all_fields(tmp_path):
-    cfg = load_config(_cfg(tmp_path), {"TELEGRAM_BOT_TOKEN": "tok"})
+    cfg = load_config(_cfg(tmp_path),
+                      {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "-1004333816460"})
     assert cfg.zip == "33130"
     assert [(w.model, w.capacity, w.colors) for w in cfg.watch] == [
         ("iPhone 18 Pro Max", "256GB", ["*"]),
@@ -25,6 +26,22 @@ def test_loads_all_fields(tmp_path):
 def test_missing_token_raises(tmp_path):
     with pytest.raises(ConfigError, match="TELEGRAM_BOT_TOKEN"):
         load_config(_cfg(tmp_path), {})
+
+
+def test_missing_chat_id_raises(tmp_path):
+    """config.toml no longer carries the chat id, so the env must supply it."""
+    with pytest.raises(ConfigError, match="TELEGRAM_CHAT_ID"):
+        load_config(_cfg(tmp_path), {"TELEGRAM_BOT_TOKEN": "tok"})
+
+
+def test_chat_id_may_still_come_from_config_file(tmp_path):
+    p = tmp_path / "config.toml"
+    p.write_text(
+        '[[watch]]\nmodel = "M"\ncapacity = "256GB"\ncolors = ["*"]\n'
+        '[location]\nzip = "1"\n[telegram]\nchat_id = "-42"\n'
+        '[canary]\npart = "X"\n'
+    )
+    assert load_config(p, {"TELEGRAM_BOT_TOKEN": "t"}).chat_id == "-42"
 
 
 def test_env_chat_id_overrides_file(tmp_path):
