@@ -4,11 +4,11 @@ name: watch
 # Runs in the cloud so coverage does not depend on a laptop being awake.
 
 on:
-  schedule:
-    # Fallback only, for when no machine is awake to dispatch. */15 is far
-    # less contended than */5, which GitHub routinely delays or drops.
-    # The primary trigger is scripts/dispatch.sh from local cron every 3 min.
-    - cron: '*/15 * * * *'
+  # No schedule: the checker currently runs locally every minute, and a
+  # cloud run would keep its own cached state -- duplicate alerts and a
+  # second heartbeat message. Re-enable this when local polling stops.
+  #  schedule:
+  #    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 # Never let two checks run at once: they would race on the cached state and

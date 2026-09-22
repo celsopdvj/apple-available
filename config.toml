@@ -14,7 +14,7 @@ zip = "33130"
 part = "MJQ34LL/A"
 
 [polling]
-jitter_seconds = 45
+jitter_seconds = 0
 repeat_minutes = 30
 discovery_ttl_hours = 24
 failure_alert_threshold = 5

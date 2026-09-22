@@ -6,30 +6,32 @@ available for in-store pickup near **ZIP 33130**.
 
 ## Where it runs
 
-Every check runs inside GitHub Actions (`.github/workflows/watch.yml`).
-There are two triggers:
+The checker currently runs **locally, every minute**, via cron:
 
-| Trigger | Interval | Role |
-|---|---|---|
-| `scripts/dispatch.sh` from local cron | 3 min | Primary, while the machine is awake |
-| The workflow's own `schedule` | 15 min | Fallback, for when it is not |
+```
+* * * * * cd <repo> && flock -n logs/.lock .venv/bin/python -m watcher --no-jitter
+```
 
-The local cron entry **triggers** the Action; it does not run the check
-itself. That is the whole point: because every run happens inside Actions,
-they all share one `actions/cache` state, so there is a single heartbeat
-message and no duplicate alerts. Running the checker locally *and* in the
-cloud would give each copy its own `state.json` and double everything.
+`flock -n` matters at this cadence: a run that hits retries and backoff can
+exceed 60s, and two processes racing on `state.json` could double-notify.
+The overlapping tick is skipped rather than queued.
 
-The workflow's `concurrency` group serialises runs, so a dispatch landing on
-top of a scheduled run queues rather than racing on that state.
+The GitHub Action (`.github/workflows/watch.yml`) is still present but its
+`schedule` is commented out, leaving only `workflow_dispatch`. **Only one
+deployment may run at a time**: local cron keeps state in `state.json` while
+the Action keeps its own in `actions/cache`, so running both gives duplicate
+alerts and two competing heartbeat messages.
 
-State lives in `actions/cache`. If it is ever lost, the worst case is one
-duplicate alert and a fresh heartbeat message -- noisy, never silent.
+### Moving between hosts
 
-`*/15` is deliberate: `*/5` is the most contended cron expression on GitHub
-and is routinely delayed or dropped. Scheduled workflows are best-effort in
-general, and GitHub disables them after 60 days of repository inactivity. A
-frozen "Last checked" timestamp on the heartbeat is how you would notice.
+The heartbeat message id is the one piece of state worth carrying across, or
+the old message freezes in the chat while a new one appears. `--status`
+prints it, and every run logs it. To hand over, read the id from the
+outgoing host and seed the incoming `state.json` with
+`"heartbeat_message_id": "<id>"`.
+
+`scripts/dispatch.sh` triggers the Action from cron, for the arrangement
+where the cloud does the checking and a local machine only pokes it.
 
 ## Setup
 
