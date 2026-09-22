@@ -34,7 +34,17 @@ class DiscoveryError(Exception):
 
 
 class TransientError(Exception):
-    """Network failure, timeout, or bot-block. Retry later; do not write state."""
+    """Network failure or timeout. Retry later; do not write state."""
+
+
+class RateLimited(TransientError):
+    """Apple returned HTTP 541: too many requests from this client.
+
+    Deliberately NOT retried in-process. Retrying a rate-limit within seconds
+    is what keeps it tripped -- one blocked check becomes three requests in
+    six seconds, which looks exactly like the abuse being throttled. Failing
+    fast and waiting for the next scheduled run lets the limiter drain.
+    """
 
 
 class ImplausibleResponse(Exception):
@@ -133,10 +143,16 @@ def _get(url: str, params: dict | None, session: requests.Session) -> requests.R
     for attempt in range(3):
         try:
             r = session.get(url, params=params, timeout=25)
-            if r.status_code == 541 or r.status_code >= 500:
+            if r.status_code == 541:
+                raise RateLimited(f"HTTP 541 (rate limited) from {url}")
+            if r.status_code >= 500:
                 raise TransientError(f"HTTP {r.status_code} from {url}")
             r.raise_for_status()
             return r
+        except RateLimited as exc:
+            # No backoff loop here: see RateLimited.
+            log.warning("rate limited by Apple; backing off until the next run")
+            raise
         except (requests.RequestException, TransientError) as exc:
             last = exc
             log.warning("request failed (attempt %d/3): %s", attempt + 1, exc)
