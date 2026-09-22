@@ -19,6 +19,7 @@ class State(dict):
             "products": {},
             "products_fetched_at": None,
             "watch_fingerprint": None,
+            "heartbeat_message_id": None,
             "consecutive_failures": 0,
             "alerted_unhealthy": False,
         })

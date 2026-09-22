@@ -14,7 +14,6 @@ def test_loads_all_fields(tmp_path):
     assert cfg.zip == "33130"
     assert [(w.model, w.capacity, w.colors) for w in cfg.watch] == [
         ("iPhone 18 Pro Max", "256GB", ["*"]),
-        ("iPhone 18 Pro Max", "2TB", ["*"]),
     ]
     assert cfg.canary_part == "MJQ34LL/A"
     assert cfg.chat_id == "-1004333816460"

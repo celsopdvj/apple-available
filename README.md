@@ -54,9 +54,9 @@ capacity = "256GB"
 colors = ["*"]                 # or ["Black", "Silver"]
 
 [[watch]]
-model = "iPhone 18 Pro Max"
-capacity = "2TB"
-colors = ["*"]
+model = "iPhone 18 Pro"        # a second target, if you want one
+capacity = "512GB"
+colors = ["Black"]
 ```
 
 Repeat the `[[watch]]` block for as many model/capacity combinations as you
@@ -86,6 +86,22 @@ fabricate an alert nor erase a real one.
 
 You get a message when a watched part goes unavailable → available, and a
 reminder every 30 minutes while it stays available.
+
+## Liveness heartbeat
+
+The watcher keeps a single "Watcher is live" message in the group and
+**edits it in place** on every run, so you can see the last-checked time
+without getting a notification every three minutes. It lists each watched
+color and the canary's store count.
+
+Its message id is stored in `state.json` as `heartbeat_message_id`. If you
+delete the message, the next run notices the edit was rejected and posts a
+fresh one. When a real availability alert fires, the heartbeat is deleted
+and re-sent so it stays the newest message rather than being buried above
+the alert.
+
+The timestamp is what makes consecutive heartbeats differ — Telegram
+rejects an edit whose text is byte-identical to what is already there.
 
 ## Telegram chat IDs
 

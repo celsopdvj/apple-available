@@ -24,6 +24,29 @@ def format_available(res, zip_code: str, repeat: bool = False) -> str:
     return "\n".join(lines)
 
 
+def format_heartbeat(results, zip_code: str, now, canary=None,
+                     interval_minutes: int = 3) -> str:
+    """The message that is edited in place each run, so the group shows a
+    live 'last checked' without a new notification every few minutes."""
+    lines = [
+        "🟢 *Watcher is live*",
+        f"Last checked: {now.strftime('%Y-%m-%d %H:%M:%S %Z').strip()}",
+        "",
+    ]
+    for r in sorted(results, key=lambda x: x.name):
+        if r.available:
+            noun = "store" if r.store_count == 1 else "stores"
+            lines.append(f"✅ {r.name} — *{r.store_count} {noun}*")
+        else:
+            lines.append(f"▫️ {r.name} — none")
+    lines.append("")
+    if canary is not None:
+        state = f"{canary.store_count} stores ✓" if canary.available else "0 ⚠️"
+        lines.append(f"_Canary {canary.part}: {state}_")
+    lines.append(f"_Checking near {zip_code} every {interval_minutes} min._")
+    return "\n".join(lines)
+
+
 def format_unhealthy(reason: str, failures: int) -> str:
     return (
         "🔴 Availability watcher is unhealthy\n\n"
@@ -35,6 +58,16 @@ def format_unhealthy(reason: str, failures: int) -> str:
 
 def format_recovered() -> str:
     return "🟡 Availability watcher has recovered and is checking normally again."
+
+
+NOT_MODIFIED = "message is not modified"
+
+
+def _describe(response) -> str:
+    try:
+        return str((response.json() or {}).get("description") or response.text[:200])
+    except ValueError:
+        return response.text[:200]
 
 
 def migrated_chat_id(response) -> str | None:
@@ -67,6 +100,11 @@ class Telegram:
         )
 
     def send(self, text: str) -> bool:
+        return self.send_id(text) is not None
+
+    def send_id(self, text: str) -> str | None:
+        """Send and return the new message's id, or None if it failed.
+        Returns "" when the send succeeded but no id came back."""
         try:
             r = self._post(text, self._chat_id)
             # A group silently becomes a supergroup when upgraded, which changes
@@ -86,8 +124,12 @@ class Telegram:
             return False
         if not r.ok:
             log.error("telegram rejected the message: %s %s", r.status_code, r.text[:300])
-            return False
-        return True
+            return None
+        try:
+            mid = ((r.json() or {}).get("result") or {}).get("message_id")
+        except ValueError:
+            mid = None
+        return str(mid) if mid else ""
 
     def check(self) -> str:
         """Verify the token and that the bot can reach the configured chat."""
@@ -110,3 +152,41 @@ class Telegram:
                 "Add the bot to the group; if privacy mode is on, make it an admin."
             )
         return name
+
+    def edit(self, message_id: str, text: str) -> bool:
+        """Edit a previously sent message. Returns False when the message is
+        gone, so the caller can send a fresh one."""
+        try:
+            r = requests.post(
+                f"{self._base}/editMessageText",
+                json={
+                    "chat_id": self._chat_id,
+                    "message_id": message_id,
+                    "text": text,
+                    "parse_mode": "Markdown",
+                    "disable_web_page_preview": True,
+                },
+                timeout=20,
+            )
+        except requests.RequestException as exc:
+            log.error("telegram edit failed: %s", exc)
+            return False
+        if r.ok:
+            return True
+        desc = _describe(r)
+        if NOT_MODIFIED in desc:
+            return True  # identical content is not a failure
+        log.warning("telegram edit rejected (%s): %s", r.status_code, desc)
+        return False
+
+    def delete(self, message_id: str) -> bool:
+        try:
+            r = requests.post(
+                f"{self._base}/deleteMessage",
+                json={"chat_id": self._chat_id, "message_id": message_id},
+                timeout=20,
+            )
+        except requests.RequestException as exc:
+            log.warning("telegram delete failed: %s", exc)
+            return False
+        return bool(r.ok)

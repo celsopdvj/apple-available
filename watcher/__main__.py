@@ -81,6 +81,33 @@ def refresh_products(cfg, st, session):
     return chosen
 
 
+def update_heartbeat(tg, st, results, canary, cfg, alerted: bool, dry_run: bool) -> None:
+    """Keep a single message in the chat showing the last check time, editing
+    it in place so being alive costs no notifications."""
+    text = notify.format_heartbeat(
+        results, cfg.zip, datetime.now().astimezone(), canary
+    )
+    if dry_run:
+        print(text + "\n" + "-" * 50)
+        return
+
+    hb_id = st.get("heartbeat_message_id")
+
+    # After a real alert, move the heartbeat below it so it stays the newest
+    # message rather than being buried above the thing you care about.
+    if alerted and hb_id:
+        tg.delete(hb_id)
+        hb_id = None
+
+    if hb_id and tg.edit(hb_id, text):
+        return
+
+    if hb_id:
+        log.info("heartbeat message %s is gone; sending a new one", hb_id)
+    new_id = tg.send_id(text)
+    st["heartbeat_message_id"] = new_id or None
+
+
 def run_once(cfg, dry_run: bool) -> int:
     st = state_mod.State.load(STATE_PATH)
     tg = notify.Telegram(cfg.bot_token, cfg.chat_id)
@@ -134,6 +161,12 @@ def run_once(cfg, dry_run: bool) -> int:
         )
         log.info("no change (canary %s at %d stores); %s",
                  canary.part, canary.store_count, summary)
+
+    update_heartbeat(
+        tg, st, list(watched.values()), results.get(cfg.canary_part), cfg,
+        alerted=bool(decision.newly_available or decision.repeats),
+        dry_run=dry_run,
+    )
 
     if not dry_run:
         st.save(STATE_PATH)

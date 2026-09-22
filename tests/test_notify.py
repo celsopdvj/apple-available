@@ -95,3 +95,95 @@ def test_send_reports_failure_when_not_migration(monkeypatch):
     monkeypatch.setattr(mod.requests, "post",
                         lambda url, json, timeout: _Resp(403, {"ok": False}, "forbidden"))
     assert Telegram("tok", "-123").send("hi") is False
+
+
+# ---------- heartbeat ----------
+
+from datetime import datetime, timezone
+from watcher.notify import format_heartbeat
+
+NOW = datetime(2026, 9, 21, 23, 12, 6, tzinfo=timezone.utc)
+
+
+def _pa(name, stores):
+    return PartAvailability("P" + name, name, stores)
+
+
+def test_heartbeat_shows_time_and_every_part():
+    res = [_pa("iPhone 18 Pro Max 256GB Black", []),
+           _pa("iPhone 18 Pro Max 256GB Silver", [])]
+    msg = format_heartbeat(res, "33130", NOW)
+    assert "live" in msg.lower()
+    assert "2026-09-21 23:12:06" in msg
+    assert "256GB Black" in msg and "256GB Silver" in msg
+    assert "33130" in msg
+
+
+def test_heartbeat_marks_available_parts():
+    res = [_pa("iPhone 18 Pro Max 256GB Black", [S1, S2]),
+           _pa("iPhone 18 Pro Max 256GB Silver", [])]
+    msg = format_heartbeat(res, "33130", NOW)
+    assert "✅" in msg and "2 stores" in msg
+    assert "▫️" in msg and "none" in msg
+
+
+def test_heartbeat_includes_canary_state():
+    canary = _pa("iPhone 18 Pro 256GB Black", [S1])
+    msg = format_heartbeat([], "33130", NOW, canary)
+    assert "Canary" in msg and "✓" in msg
+
+
+def test_heartbeat_flags_unhealthy_canary():
+    msg = format_heartbeat([], "33130", NOW, _pa("iPhone 18 Pro 256GB Black", []))
+    assert "⚠️" in msg
+
+
+def test_heartbeat_text_changes_between_checks():
+    """Telegram rejects an edit whose text is identical, so the timestamp
+    must make consecutive heartbeats differ."""
+    res = [_pa("iPhone 18 Pro Max 256GB Black", [])]
+    later = datetime(2026, 9, 21, 23, 15, 9, tzinfo=timezone.utc)
+    assert format_heartbeat(res, "33130", NOW) != format_heartbeat(res, "33130", later)
+
+
+# ---------- edit / delete ----------
+
+def test_edit_success(monkeypatch):
+    from watcher.notify import Telegram
+    import watcher.notify as mod
+    monkeypatch.setattr(mod.requests, "post",
+                        lambda url, json, timeout: _Resp(200, {"ok": True}))
+    assert Telegram("t", "-1").edit("5", "hi") is True
+
+
+def test_edit_treats_not_modified_as_success(monkeypatch):
+    from watcher.notify import Telegram
+    import watcher.notify as mod
+    monkeypatch.setattr(mod.requests, "post", lambda url, json, timeout: _Resp(
+        400, {"ok": False, "description": "Bad Request: message is not modified"}))
+    assert Telegram("t", "-1").edit("5", "hi") is True
+
+
+def test_edit_returns_false_when_message_gone(monkeypatch):
+    """A deleted heartbeat must make the caller send a fresh one."""
+    from watcher.notify import Telegram
+    import watcher.notify as mod
+    monkeypatch.setattr(mod.requests, "post", lambda url, json, timeout: _Resp(
+        400, {"ok": False, "description": "Bad Request: message to edit not found"}))
+    assert Telegram("t", "-1").edit("5", "hi") is False
+
+
+def test_send_id_returns_message_id(monkeypatch):
+    from watcher.notify import Telegram
+    import watcher.notify as mod
+    monkeypatch.setattr(mod.requests, "post", lambda url, json, timeout: _Resp(
+        200, {"ok": True, "result": {"message_id": 4242}}))
+    assert Telegram("t", "-1").send_id("hi") == "4242"
+
+
+def test_send_id_none_on_failure(monkeypatch):
+    from watcher.notify import Telegram
+    import watcher.notify as mod
+    monkeypatch.setattr(mod.requests, "post",
+                        lambda url, json, timeout: _Resp(403, {"ok": False}, "nope"))
+    assert Telegram("t", "-1").send_id("hi") is None
