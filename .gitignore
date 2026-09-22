@@ -3,5 +3,6 @@ __pycache__/
 *.pyc
 .env
 state.json
+state.json.*
 logs/
 video.mp4

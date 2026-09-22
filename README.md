@@ -14,7 +14,13 @@ silence.
 
 It can equally run from cron on any machine -- see `scripts/install-cron.sh`.
 **Do not run both at once:** each keeps its own `state.json`, so the two
-copies would double-notify and fight over the heartbeat message.
+copies would double-notify and fight over the heartbeat message. The local
+cron entry was removed when the Action took over; re-adding it means
+removing the schedule from the workflow.
+
+Scheduled workflows are best-effort: GitHub runs them late under load, and
+disables them entirely after 60 days with no repository activity. A frozen
+timestamp on the heartbeat is how you would notice.
 
 ## Setup
 
